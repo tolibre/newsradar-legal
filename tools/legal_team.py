@@ -147,6 +147,47 @@ def fold_keep(own_groups=None):
                   "label": "제목에 이름 없음", "desc": DUTY_FOLD_DESC}
     return out
 
+# ---- 매체(0-95b, 사용자 11/7 02:33 "국회팀 방식 가점·주요 매체·접기, 경제지 비중 줄이고 법조 전문매체 포함") ----
+# 법조 전문매체 — 첫 실행 DB에서 화이트리스트 밖으로 버려지던 것(11/7 02:08: 법률신문 459·로리더 48·법률방송 44·로이슈 39·법조신문 74·
+# 로톡뉴스 18·법률저널 19·리걸타임즈 13·'대한민국 법원' 14건). 표시명은 매체가 쓰는 이름.
+LEGAL_MEDIA = {   # 도메인 → 표시명
+    "lawtimes.co.kr": "법률신문", "lawtv.kr": "법률방송뉴스", "lawissue.co.kr": "로이슈", "lawleader.co.kr": "로리더",
+    "news.koreanbar.or.kr": "법조신문", "legaltimes.co.kr": "리걸타임즈", "lec.co.kr": "법률저널", "lawtalknews.co.kr": "로톡뉴스",
+    "naeil.com": "내일신문",   # 석간(국회팀판과 같게 — 원본 화이트리스트에 없다)
+}
+LEGAL_MEDIA_NAMES = sorted(set(LEGAL_MEDIA.values()) | {"법률방송", "대한민국 법원"})
+# '전체' 탭 묶음 가산 — 국회팀판과 같은 값(주요 일간지·종편·보도PP·통신 +1.5, 09:00 보고 조간 종합지 +3, 14:00 보고 석간 셋 +3).
+# 경제지는 넣지 않는다. 법조 전문지도 가점은 없다(접기 예외만 — legal_fold.py).
+DAILY_AM = ["조선일보", "중앙일보", "동아일보", "한국일보", "경향신문", "한겨레", "국민일보", "서울신문", "세계일보"]
+DAILY_PM = ["문화일보", "내일신문", "헤럴드경제"]
+BROADCAST = ["TV조선", "JTBC", "채널A", "MBN", "YTN", "연합뉴스TV"]
+WIRE = ["연합뉴스", "뉴시스", "뉴스1"]
+BOOST_BASE, BOOST_SLOT = 1.5, 3.0
+
+
+def _set_lit(names):
+    return "{" + ", ".join(repr(x) for x in sorted(set(names))) + "}"
+
+
+NEW_BOOST = ("LIVE_MEDIA_BOOST = {\n"
+             f'    "*": [({_set_lit(DAILY_AM + DAILY_PM + BROADCAST + WIRE)}, {BOOST_BASE})],\n'
+             f'    "am": [({_set_lit(DAILY_AM)}, {BOOST_SLOT})],\n'
+             f'    "pm": [({_set_lit(DAILY_PM)}, {BOOST_SLOT})],\n'
+             "}   # 법조팀(legal_team.py) — 국회팀판과 같은 값\n")
+
+
+def media_replacements(NM, fold_src):
+    return [
+        (NM, 'LIVE_MEDIA_BOOST = {"*": [(LIVE_MEDIA_MAJOR, 1.0)]}\n', NEW_BOOST, 1, False),
+        (NM, "STORE_NON_WHITELIST = True\n",
+             "STORE_NON_WHITELIST = True\nMEDIA_DOMAINS.update(" + repr(sorted(LEGAL_MEDIA)) + "); MEDIA_NAMES.update("
+             + repr(LEGAL_MEDIA_NAMES) + ")   # 법조팀(legal_team.py) — 법조 전문매체·내일신문\n", 1, False),
+        (NM, "def media_name(source):\n",
+             "DOMAIN_TO_NAME.update(" + repr(dict(sorted(LEGAL_MEDIA.items()))) + ")   # 법조팀(legal_team.py)\n\ndef media_name(source):\n", 1, False),
+        (NM, "# ==================== main ====================\nif __name__ == \"__main__\":\n",
+             fold_src + "# ==================== main ====================\nif __name__ == \"__main__\":\n", 1, False),
+    ]
+
 
 def replacements(NM, RP, own_groups):
     """법조팀 생성기 공통 치환(원본 기준 문자열·횟수)."""
@@ -158,7 +199,9 @@ def replacements(NM, RP, own_groups):
             "    # 순서 = 섹션 판정 순서(제목에 둘 이상 걸리면 앞 그룹). 제목 판정 전용어는 KEYWORD_MAX_PAGES 0.\n"
             + "".join(f'    "{k}",\n' for k in keywords_for(own)) + "]\n")
     fk = fold_keep(own)
-    return [
+    with open(__file__.replace("legal_team.py", "legal_fold.py"), encoding="utf-8") as f:
+        fold_src = f.read()
+    return media_replacements(NM, fold_src) + [
         (NM, r"DUTY_KEYWORDS = \[\n(?:.*\n)*?\]\n", duty_keywords_block(), 1, True),
         (NM, r"DUTY_KEYWORD_GROUPS = \{\n(?:.*\n)*?\}\n", duty_groups_block(), 1, True),
         (NM, 'KEYWORD_MAX_PAGES = {\n    "CBS": 1,\n}\n', max_pages_block(), 1, False),
