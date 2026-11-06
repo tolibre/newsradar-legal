@@ -1,0 +1,16 @@
+{
+  "note": "뉴스레이다 법조팀판 국회 일정 띠(원본 0-82) — 생성기 밖 파일(이 저장소에만). 법사위 전부 + 본회의(tools/legal_team.py ASSEMBLY와 같게). name = 열린국회정보 COMMITTEE_NAME 정식명.",
+  "links": [],
+  "assembly": {
+    "label": "국회 일정",
+    "days": 14,
+    "plenary": true,
+    "committees": [
+      {
+        "name": "법제사법위원회",
+        "short": "법사위",
+        "exclude": []
+      }
+    ]
+  }
+}
