@@ -131,16 +131,17 @@ DUTY_FOLD_EXTRA = {
     "헌재": ["헌법재판관", "헌법소원", "재판소원", "김상환"],
     "법조단체": ["변호사협회", "변호사회"],
 }
-DUTY_FOLD_DESC = ("휴일 특근 섹션(법무부·대법원·서울법원·헌재·법조단체)은 제목에 기관 이름이 없는 묶음 — 본문에만 이름이 스친 기사 — 을 "
-                  "섹션 끝에 접어 둡니다. [단독]은 접지 않고, 건수에는 포함합니다. 자기 출입처 섹션에는 적용하지 않습니다.")
+FOLD_GROUPS = ["법무부", "대법원", "서울법원", "헌재", "법조단체"]
+# 사용자(11/7 02:18) "접기 걸자" — 법조팀판 본 섹션에도 같은 규칙(송영훈판은 이 다섯이 휴일 특근 섹션).
+DUTY_FOLD_DESC = ("법무부·대법원·서울법원·헌재·법조단체 섹션은 제목에 기관 이름(법원 기사는 '법원·法·재판부·선고' 같은 말 포함)이 없는 묶음 — "
+                  "본문에만 이름이 스친 기사 — 을 섹션 끝에 접어 둡니다. [단독]은 접지 않고, 건수에는 포함합니다.")
 
 
-def fold_keep(own_groups):
+def fold_keep(own_groups=None):
+    """LIVE_FOLD_KEEP — FOLD_GROUPS 다섯 섹션(본 섹션이든 휴일 특근 섹션이든)."""
     import re as _re
     out = {}
-    for g in ALL_GROUPS:
-        if g in own_groups:
-            continue
+    for g in FOLD_GROUPS:
         words = [k for k, _s in SPEC[g]] + DUTY_FOLD_EXTRA.get(g, [])
         out[g] = {"keep": [], "fold": [], "need": [_re.escape(w) for w in words],
                   "label": "제목에 이름 없음", "desc": DUTY_FOLD_DESC}

@@ -69,7 +69,7 @@ FORBIDDEN = {
 EXPECT = {
     "DUTY_COLLECT": False,
     "DUTY_ONLY_GROUPS": [],
-    "LIVE_FOLD_KEEP": {},
+    "LIVE_FOLD_KEEP": LT.fold_keep(GROUPS),   # 11/7 02:18 사용자 "접기 걸자"
     "EXCLUDE_TERMS": [],
     "KEYWORDS": LT.keywords_for(GROUPS),
     "KEYWORD_MAX_PAGES": {"CBS": 1, **{k: 0 for k in LT.NO_SEARCH}},
